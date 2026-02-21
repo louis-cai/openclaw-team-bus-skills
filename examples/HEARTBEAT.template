@@ -1,0 +1,4 @@
+# HEARTBEAT.md
+
+- 运行: python3 /path/to/openclaw-team-bus-skills/scripts/bus.py poll <your-agent-id>
+- 如果无消息，回复 HEARTBEAT_OK

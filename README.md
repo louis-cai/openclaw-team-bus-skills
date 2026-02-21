@@ -12,18 +12,30 @@ openclaw agents add worker-writer
 openclaw agents add worker-researcher
 ```
 
-### 2. 配置 HEARTBEAT.md
+### 2. 配置 HEARTBEAT
 
+复制模板并修改 agent ID:
+
+```bash
+# 复制模板
+cp examples/HEARTBEAT.template <workspace>/HEARTBEAT.md
+
+# 编辑，替换 <your-agent-id> 为实际的 agent ID
+# 例如: worker-coder
+```
+
+模板内容:
 ```markdown
-# HEARTBEAT.md (Worker)
-- 运行: python3 /path/to/bus.py poll worker-coder
+# HEARTBEAT.md
+
+- 运行: python3 /path/to/openclaw-team-bus-skills/scripts/bus.py poll <your-agent-id>
 - 如果无消息，回复 HEARTBEAT_OK
 ```
 
 ### 3. Leader 派发任务
 
 ```bash
-python3 bus.py send worker-coder "修复登录bug" "用户点击登录无响应"
+python3 scripts/bus.py send worker-coder "修复登录bug" "用户点击登录无响应"
 ```
 
 ## Commands
@@ -62,3 +74,26 @@ python3 bus.py send worker-coder "修复登录bug" "用户点击登录无响应"
 - 🔵 `[agent] started <title>` - 开始
 - ✅ `[agent] completed <title>` - 完成  
 - ❌ `[agent] failed <title>: <error>` - 失败
+
+## 示例
+
+### 完整工作流
+
+```bash
+# 1. Leader 发送任务
+python3 scripts/bus.py send worker-coder "修复登录bug" "用户点击登录无响应"
+
+# 2. Worker-Coder 的 HEARTBEAT 被触发，扫描到任务
+#    (输出任务详情供 agent 处理)
+
+# 3. Agent 处理任务...
+
+# 4. 完成任务
+python3 scripts/bus.py complete task-xxx worker-coder "已修复"
+
+# 5. 或者任务失败
+python3 scripts/bus.py fail task-xxx worker-coder "无法复现问题"
+
+# 6. Agent 间相互沟通
+python3 scripts/bus.py reply worker-writer task-xxx "文档已更新"
+```
