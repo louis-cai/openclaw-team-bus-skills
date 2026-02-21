@@ -1,35 +1,6 @@
-# OpenClaw Team Bus Skills
+# OpenClaw Team Bus
 
-Multi-agent task queue system for OpenClaw with Telegram status reporting.
-
-## Overview
-
-```
-┌─────────────┐     tasks      ┌─────────────┐
-│   Leader    │ ──────────────▶│   Worker    │
-│  (Main)     │   pending/     │  (Agent)    │
-└─────────────┘                └─────────────┘
-       │                              │
-       │                              ▼
-       │                     ┌─────────────┐
-       │                     │  Telegram   │
-       └─────────────────────│   Group     │
-         completed/          └─────────────┘
-```
-
-## Directory Structure
-
-```
-/root/.openclaw/team-bus/
-├── tasks/
-│   ├── pending/      # Main 放入待执行任务
-│   ├── processing/  # 正在执行
-│   ├── completed/   # 已完成
-│   └── failed/      # 失败（可重试）
-└── workers/
-    └── <worker-id>/
-        └── config.json
-```
+Multi-agent communication system for OpenClaw with unified command interface.
 
 ## Quick Start
 
@@ -41,69 +12,53 @@ openclaw agents add worker-writer
 openclaw agents add worker-researcher
 ```
 
-### 2. 配置 Worker HEARTBEAT.md
-
-在每个 worker 的 workspace 添加 HEARTBEAT.md:
+### 2. 配置 HEARTBEAT.md
 
 ```markdown
-# HEARTBEAT.md
-- 运行: python3 /path/to/openclaw-team-bus-skills/scripts/worker.py worker-coder
-- 如果无任务，回复 HEARTBEAT_OK
+# HEARTBEAT.md (Worker)
+- 运行: python3 /path/to/bus.py poll worker-coder
+- 如果无消息，回复 HEARTBEAT_OK
 ```
 
 ### 3. Leader 派发任务
 
-在 Main Agent 的 Memory 记录 team 分工:
-
-```markdown
-## Team Members
-| Agent | 擅长 |
-|-------|------|
-| worker-coder | 编码 |
-| worker-writer | 写作 |
-| worker-researcher | 调研 |
-```
-
-派发任务:
-
 ```bash
-python3 scripts/leader.py worker-coder "修复登录bug" "用户点击登录无响应" -100123456
+python3 bus.py send worker-coder "修复登录bug" "用户点击登录无响应"
 ```
 
-## Task Format
+## Commands
 
-```json
-{
-  "id": "task-001",
-  "type": "task",
-  "subtype": "fix-bug",
-  "status": "pending",
-  "from": "lead",
-  "to": "worker-coder",
-  "createdAt": "2026-02-21T10:00:00Z",
-  "payload": {
-    "title": "修复登录 bug",
-    "description": "用户点击登录后无响应",
-    "telegram": {
-      "chatId": "-100xxxxx"
-    }
-  },
-  "result": null,
-  "error": null
-}
+| Command | 用途 |
+|---------|------|
+| `send <agent> <title> <desc> [chat]` | 发送任务 |
+| `poll <agent>` | 扫描收件箱 |
+| `reply <agent> <task-id> <msg>` | 回复任务 |
+| `broadcast <msg>` | 广播 |
+| `list-agents` | 列出 agent |
+| `complete <task-id> <agent> [result]` | 完成任务 |
+| `fail <task-id> <agent> <error>` | 标记失败 |
+
+## Agent Communication
+
+```
+┌─────────────────────────────────────────────┐
+│              Team Bus                        │
+│         (/root/.openclaw/team-bus/)         │
+├─────────────────────────────────────────────┤
+│  inbox/<agent>/    ← 收到的消息             │
+│  outbox/<agent>/   ← 发出的回复             │
+│  broadcast/        ← 广播消息                 │
+└─────────────────────────────────────────────┘
+        ▲                    ▲
+        │                    │
+   Worker A ◀──────────────▶ Worker B
+        │                    │
+        └─────────▶ Telegram ◀┘
 ```
 
-## Scripts
+## Telegram 状态
 
-| Script | 用途 |
-|--------|------|
-| worker.py | Worker 扫描并执行任务 |
-| leader.py | Main 派发任务 |
-
-## Telegram Status
-
-Worker 执行时会自动发送状态到指定群:
-
-- 🔵 `[worker-id] started <task-title>` - 开始执行
-- ✅ `[worker-id] completed <task-title>` - 执行完成  
-- ❌ `[worker-id] failed <task-title>: <error>` - 执行失败
+在任务中指定 `chatId`，Worker 执行时会自动发送状态:
+- 🔵 `[agent] started <title>` - 开始
+- ✅ `[agent] completed <title>` - 完成  
+- ❌ `[agent] failed <title>: <error>` - 失败
