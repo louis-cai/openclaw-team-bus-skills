@@ -6,21 +6,37 @@ metadata: {"clawdbot":{"emoji":"👥","requires":{"bins":["python3"],"dirs":["/r
 
 # OpenClaw Team Bus
 
-Unified multi-agent communication system for OpenClaw teams.
+Multi-agent communication system with automatic agent ID detection.
 
-## Directory Structure
+## Setup
 
+### 1. 团队信息
+
+```bash
+cp examples/team.json.template /root/.openclaw/team-bus/team.json
 ```
-/root/.openclaw/team-bus/
-├── inbox/<agent>/       # 收件箱
-├── outbox/<agent>/     # 发件箱
-├── broadcast/          # 广播消息
-├── processing/<agent>/ # 正在处理
-├── tasks/
-│   ├── pending/        # 待执行任务
-│   ├── processing/     # 正在执行
-│   ├── completed/      # 已完成
-│   └── failed/         # 失败
+
+团队成员：
+
+| 代号 | AgentID | 职责 |
+|------|---------|------|
+| Prism | lead | 协调、汇总、Telegram沟通 |
+| Scope | product | 需求、PRD、User Stories |
+| Pixel | coder | 代码实现、bug修复、测试 |
+| Lens | architect | 架构设计、接口定义、代码审查 |
+| Shutter | ops | 部署、CI、集成测试、安全监控 |
+
+### 2. 安装 Skill
+
+```bash
+cd <agent-workspace>/skills
+git clone https://github.com/louis-cai/openclaw-team-bus-skills.git openclaw-team-bus
+```
+
+### 3. 配置 HEARTBEAT
+
+```bash
+cp examples/HEARTBEAT.template <workspace>/HEARTBEAT.md
 ```
 
 ## Usage
@@ -29,39 +45,20 @@ Unified multi-agent communication system for OpenClaw teams.
 python3 bus.py <command> [args]
 
 Commands:
-  send <to-agent> <title> <description> [chat-id]   # 发送任务
-  poll <my-agent>                                  # 扫描收件箱
-  reply <to-agent> <task-id> <message>           # 回复
-  broadcast <message>                             # 广播
-  list-agents                                     # 列出 agent
-  complete <task-id> <agent> [result]            # 完成任务
-  fail <task-id> <agent> <error>                 # 标记失败
+  send <agent> <title> <desc> [chat]   # 发送任务
+  poll                                  # 扫描收件箱（自动获取agent ID）
+  reply <agent> <task-id> <msg>       # 回复
+  broadcast <msg>                     # 广播
+  list-agents                          # 列出 agent
+  team                                # 显示团队信息（我是谁）
+  complete <task-id> [result]        # 完成任务
+  fail <task-id> <error>             # 标记失败
 ```
 
-## Examples
+## Agent ID
 
-```bash
-# Leader 发送任务给 Worker
-python3 bus.py send worker-coder "修复登录bug" "用户点击登录无响应" -100123456
+Agent ID 自动从环境变量获取：
+- `TEAM_BUS_AGENT` (手动配置)
+- `CLAW_AGENT_ID` (OpenClaw 自动提供)
 
-# Worker 扫描收件箱
-python3 bus.py poll worker-coder
-
-# Worker 完成任务
-python3 bus.py complete task-123 worker-coder "已修复"
-
-# Agent 间相互回复
-python3 bus.py reply worker-writer task-123 "文档已写完"
-
-# 广播
-python3 bus.py broadcast "系统维护通知"
-```
-
-## HEARTBEAT Integration
-
-Worker 在 HEARTBEAT.md 中配置:
-```markdown
-# HEARTBEAT.md
-- 运行: python3 /path/to/bus.py poll worker-coder
-- 如果无消息，回复 HEARTBEAT_OK
-```
+无需手动传入，poll/team 等命令自动识别自己的身份。

@@ -1,0 +1,24 @@
+{
+  "team": {
+    "lead": {
+      "name": "Prism",
+      "responsibility": "协调、汇总、Telegram与用户沟通接受任务"
+    },
+    "product": {
+      "name": "Scope",
+      "responsibility": "需求、PRD、User Stories"
+    },
+    "coder": {
+      "name": "Pixel",
+      "responsibility": "实现代码、修bug、补测试"
+    },
+    "architect": {
+      "name": "Lens",
+      "responsibility": "架构设计、接口定义、代码审查"
+    },
+    "ops": {
+      "name": "Shutter",
+      "responsibility": "部署、CI、集成测试、安全与监控"
+    }
+  }
+}

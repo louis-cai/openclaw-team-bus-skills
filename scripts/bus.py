@@ -6,10 +6,11 @@ Usage: python3 bus.py <command> [args]
 
 Commands:
   send <to-agent> <title> <description> [chat-id]   # 发送任务给另一个 agent
-  poll <my-agent>                                  # 扫描并执行任务
+  poll                                           # 扫描并执行任务（自动获取agent ID）
   reply <to-agent> <task-id> <message>           # 回复任务/结果
-  broadcast <message>                             # 广播消息给所有 agent
-  list-agents                                     # 列出所有 agent
+  broadcast <message>                            # 广播消息给所有 agent
+  list-agents                                    # 列出所有 agent
+  team                                           # 显示团队信息
 """
 
 import json
@@ -21,6 +22,28 @@ from datetime import datetime
 import argparse
 
 BUS_ROOT = Path(os.environ.get("BUS_ROOT", "/root/.openclaw/team-bus"))
+SKILL_DIR = Path(os.environ.get("SKILL_DIR", "/root/.openclaw/skills/openclaw-team-bus"))
+
+def get_my_agent_id():
+    """自动获取当前 agent ID"""
+    # 优先从环境变量读取
+    agent_id = os.environ.get("TEAM_BUS_AGENT")
+    if agent_id:
+        return agent_id
+    
+    # 从 CLAW_AGENT_ID 读取（OpenClaw 提供）
+    agent_id = os.environ.get("CLAW_AGENT_ID")
+    if agent_id:
+        return agent_id
+    
+    return None
+
+def get_team_info():
+    """读取团队信息"""
+    team_file = BUS_ROOT / "team.json"
+    if team_file.exists():
+        return json.loads(team_file.read_text(encoding="utf-8"))
+    return {}
 
 def ensure_dirs():
     """确保必要的目录存在"""
@@ -31,7 +54,7 @@ def ensure_dirs():
 
 def cmd_send(to_agent: str, title: str, description: str, chat_id: str = ""):
     """发送任务/消息给另一个 agent"""
-    from_agent = os.environ.get("TEAM_BUS_AGENT", "unknown")
+    from_agent = get_my_agent_id() or "unknown"
     
     msg = {
         "id": f"msg-{datetime.now().strftime('%Y%m%d%H%M%S')}-{abs(hash(to_agent)) % 10000}",
@@ -56,8 +79,13 @@ def cmd_send(to_agent: str, title: str, description: str, chat_id: str = ""):
     print(f"✅ Sent to {to_agent}: {title}")
     return msg["id"]
 
-def cmd_poll(my_agent: str):
+def cmd_poll():
     """扫描 inbox，执行任务"""
+    my_agent = get_my_agent_id()
+    if not my_agent:
+        print("❌ Cannot determine agent ID. Set TEAM_BUS_AGENT or CLAW_AGENT_ID")
+        sys.exit(1)
+    
     inbox_dir = BUS_ROOT / "inbox" / my_agent
     
     if not inbox_dir.exists():
@@ -99,64 +127,30 @@ def cmd_poll(my_agent: str):
 
 def cmd_reply(to_agent: str, task_id: str, message: str):
     """回复任务/消息"""
-    from_agent = os.environ.get("TEAM_BUS_AGENT", "unknown")
+    from_agent = get_my_agent_id() or "unknown"
     
-    # 查找原始消息
-    processing_dir = BUS_ROOT / "processing" / to_agent
-    msg_file = None
+    # 发送到 outbox
+    outbox_dir = BUS_ROOT / "outbox" / to_agent
+    outbox_dir.mkdir(parents=True, exist_ok=True)
     
-    if processing_dir.exists():
-        for f in processing_dir.glob("*.json"):
-            if task_id in f.name or task_id in f.read_text():
-                msg_file = f
-                break
+    reply_msg = {
+        "id": f"reply-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "type": "reply",
+        "from": from_agent,
+        "to": to_agent,
+        "taskId": task_id,
+        "message": message,
+        "createdAt": datetime.now().isoformat()
+    }
     
-    if not msg_file:
-        # 尝试在 completed 找
-        completed_dir = BUS_ROOT / "tasks" / "completed" / to_agent
-        if completed_dir.exists():
-            for f in completed_dir.glob("*.json"):
-                if task_id in f.name or task_id in f.read_text():
-                    msg_file = f
-                    break
+    outbox_file = outbox_dir / f"{reply_msg['id']}.json"
+    outbox_file.write_text(json.dumps(reply_msg, indent=2, ensure_ascii=False), encoding="utf-8")
     
-    if msg_file:
-        msg = json.loads(msg_file.read_text(encoding="utf-8"))
-        if "replies" not in msg:
-            msg["replies"] = []
-        
-        reply = {
-            "from": from_agent,
-            "at": datetime.now().isoformat(),
-            "message": message
-        }
-        msg["replies"].append(reply)
-        msg_file.write_text(json.dumps(msg, indent=2, ensure_ascii=False), encoding="utf-8")
-        
-        print(f"✅ Replied to {to_agent} on {task_id}")
-    else:
-        # 发送到 outbox
-        outbox_dir = BUS_ROOT / "outbox" / to_agent
-        outbox_dir.mkdir(parents=True, exist_ok=True)
-        
-        reply_msg = {
-            "id": f"reply-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-            "type": "reply",
-            "from": from_agent,
-            "to": to_agent,
-            "taskId": task_id,
-            "message": message,
-            "createdAt": datetime.now().isoformat()
-        }
-        
-        outbox_file = outbox_dir / f"{reply_msg['id']}.json"
-        outbox_file.write_text(json.dumps(reply_msg, indent=2, ensure_ascii=False), encoding="utf-8")
-        
-        print(f"✅ Sent reply to {to_agent} (via outbox)")
+    print(f"✅ Replied to {to_agent} on {task_id}")
 
 def cmd_broadcast(message: str):
     """广播消息给所有 agent"""
-    from_agent = os.environ.get("TEAM_BUS_AGENT", "unknown")
+    from_agent = get_my_agent_id() or "unknown"
     
     broadcast_dir = BUS_ROOT / "broadcast"
     broadcast_dir.mkdir(parents=True, exist_ok=True)
@@ -176,25 +170,51 @@ def cmd_broadcast(message: str):
 
 def cmd_list_agents():
     """列出所有 agent"""
-    inbox_base = BUS_ROOT / "inbox"
+    team_info = get_team_info()
+    team = team_info.get("team", {})
     
-    if not inbox_base.exists():
-        print("No agents found")
+    if team:
+        print("Team members:")
+        for agent_id, info in team.items():
+            name = info.get("name", agent_id)
+            resp = info.get("responsibility", "")
+            print(f"  - {agent_id} ({name}): {resp}")
+    else:
+        print("No team.json found. Use team.json.template to create one.")
+
+def cmd_team():
+    """显示团队信息"""
+    team_info = get_team_info()
+    team = team_info.get("team", {})
+    
+    if not team:
+        print("No team.json found.")
         return
     
-    agents = [d.name for d in inbox_base.iterdir() if d.is_dir()]
+    my_agent = get_my_agent_id()
     
-    if agents:
-        print("Registered agents:")
-        for agent in sorted(agents):
-            # 统计消息数
-            pending = len((inbox_base / agent).glob("*.json"))
-            print(f"  - {agent} ({pending} pending)")
-    else:
-        print("No agents registered")
+    if my_agent and my_agent in team:
+        my_info = team[my_agent]
+        print(f"👤 You are: {my_info.get('name', my_agent)} ({my_agent})")
+        print(f"   Responsibility: {my_info.get('responsibility', '')}")
+        print()
+    
+    print("Team members:")
+    print(f"{'AgentID':<12} {'Name':<10} {'Responsibility'}")
+    print("-" * 60)
+    for agent_id, info in team.items():
+        name = info.get("name", agent_id)
+        resp = info.get("responsibility", "")
+        marker = " ← You" if agent_id == my_agent else ""
+        print(f"{agent_id:<12} {name:<10} {resp}{marker}")
 
-def cmd_complete(task_id: str, my_agent: str, result: str = ""):
+def cmd_complete(task_id: str, result: str = ""):
     """标记任务完成"""
+    my_agent = get_my_agent_id()
+    if not my_agent:
+        print("❌ Cannot determine agent ID")
+        return
+    
     processing_dir = BUS_ROOT / "processing" / my_agent
     
     if not processing_dir.exists():
@@ -218,8 +238,13 @@ def cmd_complete(task_id: str, my_agent: str, result: str = ""):
     
     print(f"❌ Task {task_id} not found")
 
-def cmd_fail(task_id: str, my_agent: str, error: str):
+def cmd_fail(task_id: str, error: str):
     """标记任务失败"""
+    my_agent = get_my_agent_id()
+    if not my_agent:
+        print("❌ Cannot determine agent ID")
+        return
+    
     processing_dir = BUS_ROOT / "processing" / my_agent
     
     if not processing_dir.exists():
@@ -253,14 +278,13 @@ def main():
     send_parser.add_argument("chat_id", nargs="?", default="", help="Telegram chat ID")
     
     # poll
-    poll_parser = subparsers.add_parser("poll", help="Poll inbox for tasks")
-    poll_parser.add_argument("agent", help="My agent ID")
+    subparsers.add_parser("poll", help="Poll inbox for tasks (auto-detect agent)")
     
     # reply
     reply_parser = subparsers.add_parser("reply", help="Reply to task")
     reply_parser.add_argument("to", help="Target agent")
     reply_parser.add_argument("task_id", help="Task ID")
-    reply_parser.add_argument("message", help="Reply message")
+_argument("message", help="Reply message    reply_parser.add")
     
     # broadcast
     broadcast_parser = subparsers.add_parser("broadcast", help="Broadcast message")
@@ -269,16 +293,17 @@ def main():
     # list-agents
     subparsers.add_parser("list-agents", help="List all agents")
     
+    # team
+    subparsers.add_parser("team", help="Show team info")
+    
     # complete
     complete_parser = subparsers.add_parser("complete", help="Complete task")
     complete_parser.add_argument("task_id", help="Task ID")
-    complete_parser.add_argument("agent", help="My agent ID")
     complete_parser.add_argument("result", nargs="?", default="", help="Result")
     
     # fail
     fail_parser = subparsers.add_parser("fail", help="Fail task")
     fail_parser.add_argument("task_id", help="Task ID")
-    fail_parser.add_argument("agent", help="My agent ID")
     fail_parser.add_argument("error", help="Error message")
     
     args = parser.parse_args()
@@ -290,17 +315,19 @@ def main():
     if args.command == "send":
         cmd_send(args.to, args.title, args.description, args.chat_id)
     elif args.command == "poll":
-        cmd_poll(args.agent)
+        cmd_poll()
     elif args.command == "reply":
         cmd_reply(args.to, args.task_id, args.message)
     elif args.command == "broadcast":
         cmd_broadcast(args.message)
     elif args.command == "list-agents":
         cmd_list_agents()
+    elif args.command == "team":
+        cmd_team()
     elif args.command == "complete":
-        cmd_complete(args.task_id, args.agent, args.result)
+        cmd_complete(args.task_id, args.result)
     elif args.command == "fail":
-        cmd_fail(args.task_id, args.agent, args.error)
+        cmd_fail(args.task_id, args.error)
 
 if __name__ == "__main__":
     main()

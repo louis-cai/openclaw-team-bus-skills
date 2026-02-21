@@ -1,8 +1,5 @@
 # HEARTBEAT.md
 
-- 运行: python3 <skill-path>/scripts/bus.py poll <your-agent-id>
+- 运行: python3 <skill-path>/scripts/bus.py poll
 - 如果无消息，回复 HEARTBEAT_OK
-
-# 其中 <skill-path> 是 skill 安装的路径，例如:
-# skills/openclaw-team-bus/
-# 或配置在 TOOLS.md 中
+- 可选: python3 <skill-path>/scripts/bus.py team  # 查看团队信息

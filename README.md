@@ -2,69 +2,67 @@
 
 Multi-agent communication system for OpenClaw with unified command interface.
 
-## Installation
+## Team Setup
+
+### 1. 配置团队信息
+
+复制 team.json.template 并拷贝到 team-bus 目录：
 
 ```bash
-# 克隆到每个 agent 的 skills 目录
+cp examples/team.json.template /root/.openclaw/team-bus/team.json
+```
+
+团队成员：
+
+| 代号 | AgentID | 职责 |
+|------|---------|------|
+| Prism | lead | 协调、汇总、Telegram沟通 |
+| Scope | product | 需求、PRD、User Stories |
+| Pixel | coder | 代码实现、bug修复、测试 |
+| Lens | architect | 架构设计、接口定义、代码审查 |
+| Shutter | ops | 部署、CI、集成测试、安全监控 |
+
+### 2. 安装 Skill
+
+```bash
+# 每个 agent 的 workspace
 cd <agent-workspace>/skills
 git clone https://github.com/louis-cai/openclaw-team-bus-skills.git openclaw-team-bus
 ```
 
-## Configuration
-
-### 1. 配置 TOOLS.md
-
-在 agent workspace 的 TOOLS.md 中添加:
+### 3. 配置 TOOLS.md
 
 ```markdown
 ### Team Bus
-- 路径: <agent-workspace>/skills/openclaw-team-bus
-- 命令: python3 skills/openclaw-team-bus/scripts/bus.py
+- 路径: skills/openclaw-team-bus/
+- 团队信息: /root/.openclaw/team-bus/team.json
 ```
 
-### 2. 配置 HEARTBEAT.md
+### 4. 配置 HEARTBEAT
 
-复制模板并修改:
-
+复制模板：
 ```bash
 cp examples/HEARTBEAT.template <workspace>/HEARTBEAT.md
 ```
 
-修改内容，把 `<skill-path>` 和 `<your-agent-id>` 替换为实际值:
-
-```markdown
-# HEARTBEAT.md
-
-- 运行: python3 skills/openclaw-team-bus/scripts/bus.py poll worker-coder
-- 如果无消息，回复 HEARTBEAT_OK
-```
+修改 `<your-agent-id>` 为实际的 agent ID（如 coder, product 等）
 
 ## Commands
 
 | Command | 用途 |
 |---------|------|
 | `send <agent> <title> <desc> [chat]` | 发送任务 |
-| `poll <agent>` | 扫描收件箱 |
+| `poll` | 扫描收件箱（自动获取自己的agent ID） |
 | `reply <agent> <task-id> <msg>` | 回复任务 |
 | `broadcast <msg>` | 广播 |
 | `list-agents` | 列出 agent |
-| `complete <task-id> <agent> [result]` | 完成任务 |
-| `fail <task-id> <agent> <error>` | 标记失败 |
+| `complete <task-id> <result>` | 完成任务 |
+| `fail <task-id> <error>` | 标记失败 |
 
-## Agent Communication
+## Communication Flow
 
 ```
-┌─────────────────────────────────────────────┐
-│              Team Bus                        │
-│         (/root/.openclaw/team-bus/)         │
-├─────────────────────────────────────────────┤
-│  inbox/<agent>/    ← 收到的消息             │
-│  outbox/<agent>/   ← 发出的回复             │
-│  broadcast/        ← 广播消息                 │
-└─────────────────────────────────────────────┘
-        ▲                    ▲
-        │                    │
-   Worker A ◀──────────────▶ Worker B
-        │                    │
-        └─────────▶ Telegram ◀┘
+用户 → Prism(lead) → Scope(product) → Pixel(coder) → Lens(architect) → Shutter(ops)
+                ↓                  ↓              ↓              ↓            ↓
+            Telegram          team-bus      team-bus      team-bus    team-bus
 ```
