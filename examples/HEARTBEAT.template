@@ -3,3 +3,27 @@
 - 运行: python3 <skill-path>/scripts/bus.py poll
 - 如果无消息，回复 HEARTBEAT_OK
 - 可选: python3 <skill-path>/scripts/bus.py team  # 查看团队信息
+
+# 收到任务后的处理流程:
+
+## 1. 开始执行
+- 发送 Telegram 消息报告开始:
+  "🔵 [Agent名字] 开始执行: [任务标题]"
+
+## 2. 执行任务
+- 根据任务内容执行工作
+
+## 3. 完成任务
+- 发送 Telegram 消息报告完成:
+  "✅ [Agent名字] 完成: [任务标题]"
+
+## 4. 任务失败
+- 发送 Telegram 消息报告失败:
+  "❌ [Agent名字] 失败: [任务标题] - [错误原因]"
+
+## 5. 完成任务状态
+- 运行: python3 <skill-path>/scripts/bus.py complete <task-id> [结果]
+
+## 6. 回复任务（可选）
+- 如果需要回复发送者:
+  python3 <skill-path>/scripts/bus.py reply <agent> <task-id> <message>
