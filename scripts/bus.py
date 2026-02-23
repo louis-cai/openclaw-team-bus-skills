@@ -65,10 +65,12 @@ def ensure_dirs():
 
 # ============ 消息相关 ============
 
-def cmd_send(to_agent: str, title: str, description: str, chat_id: str = "", from_agent: str = ""):
+def cmd_send(to_agent: str, title: str, description: str, chat_id: str = "", from_agent: str = "", account_id: str = None):
     """发送任务/消息给另一个 agent"""
     # from_agent 已经是必传参数，这里保留作为备用
-    
+    if account_id is None:
+        account_id = get_my_account_id() or ""
+
     msg = {
         "id": f"msg-{datetime.now().strftime('%Y%m%d%H%M%S')}-{abs(hash(to_agent)) % 10000}",
         "type": "task",
@@ -78,7 +80,10 @@ def cmd_send(to_agent: str, title: str, description: str, chat_id: str = "", fro
         "payload": {
             "title": title,
             "description": description,
-            "telegram": {"chatId": chat_id} if chat_id else {}
+            "telegram": {
+                **({"chatId": chat_id} if chat_id else {}),
+                **({"accountId": account_id} if account_id else {})
+            }
         },
         "replies": []
     }
@@ -328,6 +333,7 @@ def main():
     send_parser.add_argument("description", help="Task description")
     send_parser.add_argument("chat_id", help="Telegram chat ID (required)")
     send_parser.add_argument("--from", dest="from_agent", required=True, help="From agent (required)")
+    send_parser.add_argument("--accountId", default=None, help="Telegram accountId (default: TEAM_BUS_ACCOUNT)")
     
     # poll
     subparsers.add_parser("poll", help="Poll inbox for tasks (auto-detect agent)")
@@ -368,7 +374,7 @@ def main():
         return
     
     if args.command == "send":
-        cmd_send(args.to, args.title, args.description, args.chat_id, args.from_agent)
+        cmd_send(args.to, args.title, args.description, args.chat_id, args.from_agent, args.accountId)
     elif args.command == "poll":
         cmd_poll()
     elif args.command == "reply":
