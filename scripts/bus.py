@@ -125,7 +125,7 @@ def cmd_poll():
         print(json.dumps(msg, ensure_ascii=False))
         print(f"--- MESSAGE END ---")
 
-def cmd_reply(to_agent: str, task_id: str, message: str):
+def cmd_reply(to_agent: str, task_id: str, message: str, account_id: str = ""):
     """回复任务/消息"""
     from_agent = get_my_agent_id() or "unknown"
     
@@ -140,6 +140,7 @@ def cmd_reply(to_agent: str, task_id: str, message: str):
         "to": to_agent,
         "taskId": task_id,
         "message": message,
+        "accountId": account_id,
         "createdAt": datetime.now().isoformat()
     }
     
@@ -286,6 +287,7 @@ def main():
     reply_parser.add_argument("to", help="Target agent")
     reply_parser.add_argument("task_id", help="Task ID")
     reply_parser.add_argument("message", help="Reply message")
+    reply_parser.add_argument("--accountId", default="", help="Telegram accountId (required for sending)")
     
     # broadcast
     broadcast_parser = subparsers.add_parser("broadcast", help="Broadcast message")
@@ -318,7 +320,7 @@ def main():
     elif args.command == "poll":
         cmd_poll()
     elif args.command == "reply":
-        cmd_reply(args.to, args.task_id, args.message)
+        cmd_reply(args.to, args.task_id, args.message, args.accountId)
     elif args.command == "broadcast":
         cmd_broadcast(args.message)
     elif args.command == "list-agents":

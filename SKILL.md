@@ -47,7 +47,7 @@ python3 bus.py <command> [args]
 Commands:
   send <agent> <title> <desc> <chat> --from <agent>   # 发送任务（必传）
   poll                                              # 扫描收件箱（自动获取agent ID）
-  reply <agent> <task-id> <msg>                     # 回复
+  reply <agent> <task-id> <msg> [--accountId <id>]   # 回复（accountId 必传）
   broadcast <msg>                                   # 广播
   list-agents                                       # 列出 agent
   team                                              # 显示团队信息（我是谁）
