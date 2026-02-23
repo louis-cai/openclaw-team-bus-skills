@@ -136,10 +136,20 @@ python3 bus.py send coder "修bug" "登录页报错" "-1003761710887" --from lea
 TEAM_BUS_AGENT=lead python3 bus.py send coder "修bug" "登录页报错" "-1003761710887"
 ```
 
-## Agent ID 自动识别
+## Agent ID / Account ID 自动识别
 
-Agent ID 自动从环境变量获取：
-- `TEAM_BUS_AGENT` (手动配置)
-- `CLAW_AGENT_ID` (OpenClaw 自动提供)
+Agent ID 和 Account ID 自动从环境变量获取：
 
-无需手动传入，poll/team 等命令自动识别自己的身份。
+| 环境变量 | 用途 |
+|---------|------|
+| `TEAM_BUS_AGENT` | Agent ID（可选） |
+| `CLAW_AGENT_ID` | Agent ID（OpenClaw 自动提供） |
+| `TEAM_BUS_ACCOUNT` | Telegram Account ID（用于发消息） |
+| `CLAW_ACCOUNT_ID` | Telegram Account ID（备用） |
+
+设置示例：
+```bash
+export TEAM_BUS_AGENT=product
+export TEAM_BUS_ACCOUNT=lead
+python3 bus.py poll
+```

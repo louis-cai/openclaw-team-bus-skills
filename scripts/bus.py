@@ -38,6 +38,19 @@ def get_my_agent_id():
     
     return None
 
+def get_my_account_id():
+    """自动获取当前 account ID"""
+    account_id = os.environ.get("TEAM_BUS_ACCOUNT")
+    if account_id:
+        return account_id
+    
+    # 备用：从 CLAW_ACCOUNT_ID 读取
+    account_id = os.environ.get("CLAW_ACCOUNT_ID")
+    if account_id:
+        return account_id
+    
+    return None
+
 def get_team_info():
     """读取团队信息"""
     team_file = BUS_ROOT / "team.json"
@@ -125,8 +138,11 @@ def cmd_poll():
         print(json.dumps(msg, ensure_ascii=False))
         print(f"--- MESSAGE END ---")
 
-def cmd_reply(to_agent: str, task_id: str, message: str, account_id: str = ""):
+def cmd_reply(to_agent: str, task_id: str, message: str, account_id: str = None):
     """回复任务/消息"""
+    if account_id is None:
+        account_id = get_my_account_id() or ""
+    
     from_agent = get_my_agent_id() or "unknown"
     
     # 发送到 outbox
@@ -287,7 +303,7 @@ def main():
     reply_parser.add_argument("to", help="Target agent")
     reply_parser.add_argument("task_id", help="Task ID")
     reply_parser.add_argument("message", help="Reply message")
-    reply_parser.add_argument("--accountId", default="", help="Telegram accountId (required for sending)")
+    reply_parser.add_argument("--accountId", default=None, help="Telegram accountId (default: TEAM_BUS_ACCOUNT)")
     
     # broadcast
     broadcast_parser = subparsers.add_parser("broadcast", help="Broadcast message")
