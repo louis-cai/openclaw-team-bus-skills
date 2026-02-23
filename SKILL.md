@@ -45,14 +45,14 @@ cp examples/HEARTBEAT.template <workspace>/HEARTBEAT.md
 python3 bus.py <command> [args]
 
 Commands:
-  send <agent> <title> <desc> [chat]   # 发送任务
-  poll                                  # 扫描收件箱（自动获取agent ID）
-  reply <agent> <task-id> <msg>       # 回复
-  broadcast <msg>                     # 广播
-  list-agents                          # 列出 agent
-  team                                # 显示团队信息（我是谁）
-  complete <task-id> [result]        # 完成任务
-  fail <task-id> <error>             # 标记失败
+  send <agent> <title> <desc> <chat> --from <agent>   # 发送任务（必传）
+  poll                                              # 扫描收件箱（自动获取agent ID）
+  reply <agent> <task-id> <msg>                     # 回复
+  broadcast <msg>                                   # 广播
+  list-agents                                       # 列出 agent
+  team                                              # 显示团队信息（我是谁）
+  complete <task-id> [result]                       # 完成任务
+  fail <task-id> <error>                            # 标记失败
 ```
 
 ## Agent ID

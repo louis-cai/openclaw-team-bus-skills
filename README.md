@@ -37,7 +37,7 @@ cp examples/HEARTBEAT.template <workspace>/HEARTBEAT.md
 
 | Command | 用途 |
 |---------|------|
-| `send <agent> <title> <desc> [chat]` | 发送任务给指定 agent |
+| `send <agent> <title> <desc> <chat> --from <agent>` | 发送任务给指定 agent（必传） |
 | `poll` | 扫描收件箱（自动获取agent ID） |
 | `reply <agent> <task-id> <msg>` | 回复任务 |
 | `broadcast <msg>` | 广播给所有 agent |
@@ -93,10 +93,10 @@ Lead → Product → Coder → Architect → Ops
 
 ```
 # Lead 直接找 Coder
-python3 bus.py send coder "修bug" "登录页报错"
+python3 bus.py send coder "修bug" "登录页报错" "-1003761710887" --from lead
 
 # Coder 完成后通知 Architect 审查
-python3 bus.py send architect "代码审查" "PR #123"
+python3 bus.py send architect "代码审查" "PR #123" "-1003761710887" --from coder
 
 # Architect 审查后通知 Lead 和 Coder
 python3 bus.py broadcast "代码审查通过"
@@ -109,19 +109,31 @@ python3 bus.py broadcast "已部署到生产环境"
 
 ```
 # Lead 分配任务
-python3 bus.py send product "新功能需求" "用户登录模块"
+python3 bus.py send product "新功能需求" "用户登录模块" "-1003761710887" --from lead
 
 # Product 完成需求，通知 Coder
-python3 bus.py send coder "实现登录功能" "详见PRD"
+python3 bus.py send coder "实现登录功能" "详见PRD" "-1003761710887" --from product
 
 # Coder 实现中遇到问题，询问 Architect
-python3 bus.py send architect "架构问题" "登录流程设计"
+python3 bus.py send architect "架构问题" "登录流程设计" "-1003761710887" --from coder
 
 # Coder 完成，通知 Architect 审查
-python3 bus.py send architect "代码审查" "PR #456"
+python3 bus.py send architect "代码审查" "PR #456" "-1003761710887" --from coder
 
 # Architect 审查通过，通知 Ops 部署
-python3 bus.py send ops "部署" "v1.2.0"
+python3 bus.py send ops "部署" "v1.2.0" "-1003761710887" --from architect
+```
+
+### 指定发送者
+
+使用 `--from` 参数显式指定发送者：
+```bash
+python3 bus.py send coder "修bug" "登录页报错" "-1003761710887" --from lead
+```
+
+或通过环境变量：
+```bash
+TEAM_BUS_AGENT=lead python3 bus.py send coder "修bug" "登录页报错" "-1003761710887"
 ```
 
 ## Agent ID 自动识别
