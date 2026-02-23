@@ -165,9 +165,11 @@ def cmd_reply(to_agent: str, task_id: str, message: str, account_id: str = None)
     
     print(f"✅ Replied to {to_agent} on {task_id}")
 
-def cmd_broadcast(message: str):
+def cmd_broadcast(message: str, chat_id: str = "", account_id: str = None):
     """广播消息给所有 agent（写入每个 agent 的 inbox）"""
     from_agent = get_my_agent_id() or "unknown"
+    if account_id is None:
+        account_id = get_my_account_id() or ""
 
     # 优先使用 team.json 中的团队成员
     team_info = get_team_info()
@@ -201,7 +203,10 @@ def cmd_broadcast(message: str):
             "payload": {
                 "title": f"Broadcast from {from_agent}",
                 "description": message,
-                "telegram": {}
+                "telegram": {
+                    "chatId": chat_id,
+                    "accountId": account_id
+                }
             },
             "replies": []
         }
@@ -337,6 +342,8 @@ def main():
     # broadcast
     broadcast_parser = subparsers.add_parser("broadcast", help="Broadcast message")
     broadcast_parser.add_argument("message", help="Broadcast message")
+    broadcast_parser.add_argument("--chatId", default="", help="Telegram chat ID for recipients to reply")
+    broadcast_parser.add_argument("--accountId", default=None, help="Telegram accountId (default: TEAM_BUS_ACCOUNT)")
     
     # list-agents
     subparsers.add_parser("list-agents", help="List all agents")
@@ -367,7 +374,7 @@ def main():
     elif args.command == "reply":
         cmd_reply(args.to, args.task_id, args.message, args.accountId)
     elif args.command == "broadcast":
-        cmd_broadcast(args.message)
+        cmd_broadcast(args.message, args.chatId, args.accountId)
     elif args.command == "list-agents":
         cmd_list_agents()
     elif args.command == "team":

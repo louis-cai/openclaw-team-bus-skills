@@ -40,7 +40,7 @@ cp examples/HEARTBEAT.template <workspace>/HEARTBEAT.md
 | `send <agent> <title> <desc> <chat> --from <agent>` | 发送任务给指定 agent（必传） |
 | `poll` | 扫描收件箱（自动获取agent ID） |
 | `reply <agent> <task-id> <msg> --accountId <id>` | 回复任务（accountId 必传） |
-| `broadcast <msg>` | 广播给所有 agent（写入各自 inbox） |
+| `broadcast <msg> [--chatId <id>] [--accountId <id>]` | 广播给所有 agent（写入各自 inbox） |
 | `list-agents` | 列出 agent |
 | `team` | 显示团队信息（我是谁） |
 | `complete <task-id> [result]` | 完成任务 |
@@ -99,10 +99,10 @@ python3 bus.py send coder "修bug" "登录页报错" "-1003761710887" --from lea
 python3 bus.py send architect "代码审查" "PR #123" "-1003761710887" --from coder
 
 # Architect 审查后通知 Lead 和 Coder
-python3 bus.py broadcast "代码审查通过"
+python3 bus.py broadcast "代码审查通过" --chatId "-1003790843669" --accountId lead
 
 # Ops 部署后通知全队
-python3 bus.py broadcast "已部署到生产环境"
+python3 bus.py broadcast "已部署到生产环境" --chatId "-1003790843669" --accountId lead
 ```
 
 ### 任务协作
