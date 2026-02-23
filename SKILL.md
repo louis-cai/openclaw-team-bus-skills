@@ -48,7 +48,7 @@ Commands:
   send <agent> <title> <desc> <chat> --from <agent>   # 发送任务（必传）
   poll                                              # 扫描收件箱（自动获取agent ID）
   reply <agent> <task-id> <msg> [--accountId <id>]   # 回复（accountId 必传）
-  broadcast <msg>                                   # 广播
+  broadcast <msg>                                   # 广播（分发到每个 agent 的 inbox）
   list-agents                                       # 列出 agent
   team                                              # 显示团队信息（我是谁）
   complete <task-id> [result]                       # 完成任务

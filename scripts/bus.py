@@ -166,24 +166,53 @@ def cmd_reply(to_agent: str, task_id: str, message: str, account_id: str = None)
     print(f"✅ Replied to {to_agent} on {task_id}")
 
 def cmd_broadcast(message: str):
-    """广播消息给所有 agent"""
+    """广播消息给所有 agent（写入每个 agent 的 inbox）"""
     from_agent = get_my_agent_id() or "unknown"
-    
-    broadcast_dir = BUS_ROOT / "broadcast"
-    broadcast_dir.mkdir(parents=True, exist_ok=True)
-    
-    msg = {
-        "id": f"broadcast-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-        "type": "broadcast",
-        "from": from_agent,
-        "message": message,
-        "createdAt": datetime.now().isoformat()
-    }
-    
-    broadcast_file = broadcast_dir / f"{msg['id']}.json"
-    broadcast_file.write_text(json.dumps(msg, indent=2, ensure_ascii=False), encoding="utf-8")
-    
-    print(f"📢 Broadcast: {message}")
+
+    # 优先使用 team.json 中的团队成员
+    team_info = get_team_info()
+    team = team_info.get("team", {})
+    if team:
+        recipients = sorted(team.keys())
+    else:
+        # 兜底：使用已有 inbox 子目录作为收件人
+        inbox_root = BUS_ROOT / "inbox"
+        recipients = sorted([p.name for p in inbox_root.iterdir() if p.is_dir()]) if inbox_root.exists() else []
+
+    # 广播默认不发给自己
+    recipients = [agent for agent in recipients if agent != from_agent]
+
+    if not recipients:
+        print("❌ No recipients found for broadcast. Configure team.json first.")
+        return
+
+    broadcast_id = f"broadcast-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    created_at = datetime.now().isoformat()
+
+    sent = 0
+    for to_agent in recipients:
+        msg = {
+            "id": f"{broadcast_id}-{to_agent}",
+            "type": "broadcast",
+            "from": from_agent,
+            "to": to_agent,
+            "broadcastId": broadcast_id,
+            "createdAt": created_at,
+            "payload": {
+                "title": f"Broadcast from {from_agent}",
+                "description": message,
+                "telegram": {}
+            },
+            "replies": []
+        }
+
+        inbox_dir = BUS_ROOT / "inbox" / to_agent
+        inbox_dir.mkdir(parents=True, exist_ok=True)
+        msg_file = inbox_dir / f"{msg['id']}.json"
+        msg_file.write_text(json.dumps(msg, indent=2, ensure_ascii=False), encoding="utf-8")
+        sent += 1
+
+    print(f"📢 Broadcast queued to {sent} agent(s): {message}")
 
 def cmd_list_agents():
     """列出所有 agent"""
